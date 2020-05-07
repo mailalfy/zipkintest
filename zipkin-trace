@@ -1,0 +1,102 @@
+package au.com.deloitte.pe.core.exporter;
+
+import io.grpc.ManagedChannel;
+import io.grpc.ManagedChannelBuilder;
+import io.opentelemetry.OpenTelemetry;
+import io.opentelemetry.exporters.jaeger.JaegerGrpcSpanExporter;
+import io.opentelemetry.exporters.zipkin.*;
+import io.opentelemetry.sdk.OpenTelemetrySdk;
+import io.opentelemetry.sdk.trace.export.SimpleSpansProcessor;
+import io.opentelemetry.trace.Tracer;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public class ZipkinExporter {
+    Logger logger = LoggerFactory.getLogger(zipkin.class);
+    private String ip;
+    private int port;
+
+    // OTel API
+    private Tracer tracer = OpenTelemetry.getTracerFactory()
+            .get("au.com.deloitte.pe.internal.core.exporter.zipkinExporter");
+
+    public static void main(String arg[]) {
+        ZipkinExporterConfiguration configuration =
+                ZipkinExporterConfiguration.builder()
+                        .setEndpoint("http://localhost:9411/api/v2/spans")
+                        .setServiceName("my-service")
+                        .build();
+
+        ZipkinSpanExporter exporter = ZipkinSpanExporter.create(configuration);
+        .
+        exporter = ZipkinSpanExporter.
+
+        //JaegerGrpcSpanExporter.newBuilder().setServiceName(serviceName).setChannel(jaegerChannel)
+        //.setDeadline(30000).build();  
+
+
+    }
+
+}
+===================================
+package au.com.deloitte.pe.core.exporter;
+
+import io.grpc.ManagedChannel;
+import io.grpc.ManagedChannelBuilder;
+import io.opentelemetry.OpenTelemetry;
+import io.opentelemetry.exporters.jaeger.JaegerGrpcSpanExporter;
+import io.opentelemetry.sdk.OpenTelemetrySdk;
+import io.opentelemetry.sdk.trace.export.SimpleSpansProcessor;
+import io.opentelemetry.trace.Tracer;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public class JaegerExporter {
+	Logger logger = LoggerFactory.getLogger(JaegerExporter.class);
+	private static io.opentelemetry.exporters.jaeger.JaegerGrpcSpanExporter exporter;
+	private String ip;
+	private int port;
+
+	// OTel API
+	private Tracer tracer = OpenTelemetry.getTracerFactory()
+			.get("au.com.deloitte.pe.internal.core.exporter.JaegerExporter");
+	
+	// Export traces to Jaeger
+	private JaegerGrpcSpanExporter jaegerExporter;
+
+	public JaegerExporter(String ip, int port, String serviceName) {
+		// TODO: SHOULD serviceName be statically set to "esb" ?
+		this.ip = ip;
+		this.port = port;
+		setupJaegerExporter(serviceName);
+	}
+
+	/*
+	 * The examples show creating a Tracer when configuring the exporter It seems
+	 * odd that creating the exporter sets a service name which
+	 */
+	private void setupJaegerExporter(String serviceName) {
+		// Create a channel towards Jaeger end point
+		ManagedChannel jaegerChannel = ManagedChannelBuilder.forAddress(ip, port).usePlaintext().build();
+
+		// Export traces to Jaeger
+		this.jaegerExporter = JaegerGrpcSpanExporter.newBuilder().setServiceName(serviceName).setChannel(jaegerChannel)
+				.setDeadline(30000).build();
+
+		// Set to process the spans by the Jaeger Exporter
+		OpenTelemetrySdk.getTracerFactory()
+				.addSpanProcessor(SimpleSpansProcessor.newBuilder(this.jaegerExporter).build());
+
+		logger.info("Setup Jaeger Exporter Done");
+	}
+
+	public Tracer getTracer() {
+		return this.tracer;
+	}
+
+	public io.opentelemetry.exporters.jaeger.JaegerGrpcSpanExporter getExporter() {
+		return JaegerExporter.exporter;
+	}
+}
